@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    container_name: pt-llm-assistant
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
