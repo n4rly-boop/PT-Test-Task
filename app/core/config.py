@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     llm_base_url: str = Field(default="", alias="LLM_BASE_URL")
     llm_model: str = Field(default="google/gemini-2.5-flash-preview-09-2025", alias="LLM_MODEL")
 
+    # Database configuration
+    user_db_url: str = Field(default="postgresql+psycopg://postgres:postgres@user_db:5432/user_db", alias="USER_DATABASE_URL")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
