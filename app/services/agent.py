@@ -11,6 +11,7 @@ from langgraph.prebuilt import ToolNode
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import tool
 from app.services.model import Model
+from app.core.config import settings
 
 
 class State(dict):
@@ -45,7 +46,7 @@ def chatbot(state: State) -> Dict[str, List[BaseMessage]]:
         llm = Model().with_tools(TOOLS)
         ai_message = llm.invoke(state["messages"])
     except Exception as e:
-        return {"messages": [AIMessage(content=f"Проблема с LLM: {e}")]}
+        return {"messages": [AIMessage(content=f"LLM error {settings.llm_error_code}: {e}")]}
     return {"messages": [ai_message]}
 
 def route_tools(state: State) -> str:

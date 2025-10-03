@@ -6,6 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.database import get_db
 from app.db import models as db_models
 from app.schemas.chat import (
@@ -73,16 +74,18 @@ def send_message(session_id: str, payload: SendMessageRequest, db: Session = Dep
     session.last_message_at = user_msg.created_at
     db.commit()
 
+    # Prepare conversation memory: last n messages in this session
+    history = get_history(session_id, db)
+    messages = [{"role": m.role, "content": m.content} for m in history.messages]
     # Run assistant
-    messages = [
-        {"role": "user", "content": payload.message},
-    ]
     response = agent_service.run(messages)
     reply = response["messages"][-1].content
     tools = [tool.name for tool in response["messages"] if isinstance(tool, ToolMessage)]
 
     # Persist assistant reply
     assistant_msg = db_models.ChatMessage(session_id=session_id, role="assistant", content=reply)
+    if f"LLM error {settings.llm_error_code}" in assistant_msg.content:
+        raise HTTPException(status_code=500, detail="LLM error")
     db.add(assistant_msg)
     session.message_count = (session.message_count or 0) + 1
     session.last_message_at = assistant_msg.created_at
@@ -100,7 +103,7 @@ def get_history(session_id: str, db: Session = Depends(get_db)):
         db.query(db_models.ChatMessage)
         .filter(db_models.ChatMessage.session_id == session_id)
         .order_by(db_models.ChatMessage.created_at.asc())
-        .all()
+        .limit(settings.chat_history_length)
     )
     records = [MessageRecord(id=m.id, role=m.role, content=m.content, created_at=m.created_at) for m in msgs]
     return MessageHistoryResponse(session_id=session_id, messages=records)
