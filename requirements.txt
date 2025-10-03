@@ -7,5 +7,7 @@ langgraph>=0.2.22
 langchain-core>=0.2.43
 typing_extensions>=4.12.2
 langchain-openai>=0.2.0
+pytest>=8.3.2
+pytest-asyncio>=0.24.0
 SQLAlchemy>=2.0.32
 psycopg[binary]>=3.2.1
