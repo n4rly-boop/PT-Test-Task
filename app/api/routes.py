@@ -1,10 +1,13 @@
 from fastapi import APIRouter
+from langchain_core.messages import ToolMessage
 
 from app.core.config import settings
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.services.agent import SuperAssistantAgent
 
 
 router = APIRouter()
+agent_service = SuperAssistantAgent()
 
 
 @router.get("/", tags=["root"])
@@ -24,7 +27,9 @@ def health_check():
 
 @router.post("/chat", tags=["chat"])
 def chat(request: ChatRequest) -> ChatResponse:
-    reply = "Hello, world!"
-    tool = "none"
-    meta = None
-    return ChatResponse(reply=reply, tool=tool, meta=meta)
+    messages = [{"role": "user", "content": request.message}]
+    response = agent_service.run(messages)
+    reply = response["messages"][-1].content
+    tools = [tool.name for tool in response["messages"] if isinstance(tool, ToolMessage)]
+    meta = {"session_id": request.session_id}
+    return ChatResponse(reply=reply, tools=tools, meta=meta)
