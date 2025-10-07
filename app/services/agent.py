@@ -7,22 +7,17 @@ from typing_extensions import Annotated
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
-from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import tool
-from app.services.model import Model
+from langchain_core.messages import AIMessage, BaseMessage
+
 from app.core.config import settings
+from app.services.model import Model
 from app.services.tools.rag import rag_tool
+from app.services.tools.sql import sql_tool
 
 
 class State(dict):
     messages: Annotated[List[BaseMessage], add_messages]
-
-
-@tool("sql")
-def sql_tool(query: str) -> str:
-    """ Get information from database """
-    print(f"SQL: {query}")
-    return "[SQL:mock]"
 
 
 @tool("web")
