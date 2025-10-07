@@ -14,7 +14,7 @@ os.environ.setdefault("LLM_API_KEY", "")
 def client(tmp_path):
     # Point DB to a writable temp path
     db_url = f"sqlite:///{tmp_path}/test.db"
-    os.environ["USER_DATABASE_URL"] = db_url
+    os.environ["DATABASE_URL"] = db_url
     # Import app with this DB URL
     from importlib import reload
     import app.core.config as cfg

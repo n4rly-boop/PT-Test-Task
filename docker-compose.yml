@@ -1,17 +1,17 @@
 services:
-  user_db:
-    image: postgres:16-alpine
-    container_name: user-db
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: db
     environment:
-      POSTGRES_DB: user_db
+      POSTGRES_DB: db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
-      - user_db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d user_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -22,15 +22,15 @@ services:
     env_file:
       - .env
     environment:
-      USER_DATABASE_URL: ${USER_DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL}
     ports:
       - "8000:8000"
     volumes:
       - ./:/app
     depends_on:
-      user_db:
+      db:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
-  user_db_data:
+  db_data:

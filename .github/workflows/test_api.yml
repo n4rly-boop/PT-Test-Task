@@ -30,7 +30,7 @@ jobs:
 
       - name: Run tests
         env:
-          USER_DATABASE_URL: sqlite:///./test.db
+          DATABASE_URL: sqlite:///./test.db
           LLM_API_KEY: ''
         run: |
           pytest -q

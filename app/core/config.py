@@ -15,7 +15,11 @@ class Settings(BaseSettings):
     llm_error_code: str = Field(default="", alias="LLM_ERROR_CODE")
 
     # Database configuration
-    user_db_url: str = Field(default="postgresql+psycopg://postgres:postgres@user_db:5432/user_db", alias="USER_DATABASE_URL")
+    db_url: str = Field(default="postgresql+psycopg://postgres:postgres@db:5432/db", alias="DATABASE_URL")
+
+    # Embedding configuration
+    embedding_model: str = Field(default="BAAI/bge-m3", alias="EMBEDDING_MODEL")
+    embedding_dim: int = Field(default=1024, alias="EMBEDDING_DIM")
 
     # Chat configuration
     chat_history_length: int = Field(default=50, alias="CHAT_HISTORY_LENGTH")
