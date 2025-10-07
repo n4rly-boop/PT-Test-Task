@@ -3,15 +3,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import re
 import sys
 from pathlib import Path
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import nltk
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from app.services.embedding import clear_text
 
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
@@ -65,16 +64,6 @@ def process_document(
 
     return result
 
-def clear_text(text: str) -> str:
-    #TODO add lemmatization/stemming for russian words
-    text = ''.join(c for c in text if c.isprintable() or c in '\n\r\t ')
-    lowered = text.lower()
-    normalized = re.sub(r"[^а-яА-Яa-zA-Z0-9\s]+", " ", lowered)
-    removed_spaces = re.sub(r"\s+", " ", normalized)
-    stopwords = nltk.corpus.stopwords.words("russian")
-    cleared_tokens = [token for token in removed_spaces.split() if token not in stopwords]
-    return " ".join(cleared_tokens)
-
 def save_to_csv(data: list[dict], output_path: Path) -> None:
     """Save embedding data to CSV file."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,7 +81,7 @@ def save_to_csv(data: list[dict], output_path: Path) -> None:
 def main() -> None:
     args = parse_args()
 
-    from app.services.embedding import EmbeddingService
+    from app.services.embedding import embedding_service
 
     if not args.input_dir.exists():
         raise SystemExit(f"Input directory {args.input_dir} not found")
@@ -104,7 +93,6 @@ def main() -> None:
         return
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-    embedder = EmbeddingService()
 
     total_docs = 0
     total_chunks = 0
@@ -121,7 +109,7 @@ def main() -> None:
         # Process all documents in this file
         all_chunks = []
         for record in docs:
-            chunks = process_document(embedder, splitter, record)
+            chunks = process_document(embedding_service, splitter, record)
             all_chunks.extend(chunks)
 
         if not all_chunks:

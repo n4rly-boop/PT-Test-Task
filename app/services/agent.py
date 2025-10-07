@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Dict, List
 
 from typing_extensions import Annotated
@@ -12,17 +11,11 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import tool
 from app.services.model import Model
 from app.core.config import settings
+from app.services.tools.rag import rag_tool
 
 
 class State(dict):
     messages: Annotated[List[BaseMessage], add_messages]
-
-
-@tool("rag")
-def rag_tool(query: str) -> str:
-    """ Get information from documentation """
-    print(f"RAG: {query}")
-    return "[RAG:mock]"
 
 
 @tool("sql")
