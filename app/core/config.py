@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     llm_model: str = Field(default="google/gemini-2.5-flash-preview-09-2025", alias="LLM_MODEL")
     llm_error_code: str = Field(default="", alias="LLM_ERROR_CODE")
 
+    #LangSmith configuration
+    langsmith_api_key: str = Field(default="", alias="LANGSMITH_API_KEY")
+    langsmith_project: str = Field(default="", alias="LANGSMITH_PROJECT")
+    langsmith_endpoint: str = Field(default="", alias="LANGSMITH_ENDPOINT")
+
     # Database configuration
     db_url: str = Field(default="postgresql+psycopg://postgres:postgres@db:5432/db", alias="DATABASE_URL")
 
