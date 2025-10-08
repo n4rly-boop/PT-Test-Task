@@ -78,26 +78,23 @@ def save_to_csv(data: list[dict], output_path: Path) -> None:
         writer.writerows(data)
 
 
-def main() -> None:
-    args = parse_args()
-
+def create_embeddings(input_dir: Path, output_dir: Path) -> list[Path]:
+    """Generate embeddings from JSONL documents and persist them as CSVs."""
     from app.services.embedding import embedding_service
 
-    if not args.input_dir.exists():
-        raise SystemExit(f"Input directory {args.input_dir} not found")
+    if not input_dir.exists():
+        return []
 
-    # Find all JSONL files in the input directory
-    jsonl_files = list(args.input_dir.glob("*.jsonl"))
+    jsonl_files = list(input_dir.glob("*.jsonl"))
     if not jsonl_files:
-        print(f"No JSONL files found in {args.input_dir}")
-        return
+        return []
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+    generated_paths: list[Path] = []
 
     total_docs = 0
     total_chunks = 0
 
-    # Process each JSONL file
     for jsonl_file in jsonl_files:
         print(f"Processing {jsonl_file}...")
 
@@ -106,7 +103,6 @@ def main() -> None:
             print(f"No documents found in {jsonl_file}; skipping.")
             continue
 
-        # Process all documents in this file
         all_chunks = []
         for record in docs:
             chunks = process_document(embedding_service, splitter, record)
@@ -116,9 +112,9 @@ def main() -> None:
             print(f"No chunks generated from {jsonl_file}; skipping.")
             continue
 
-        # Save to CSV with original filename
+        output_dir.mkdir(parents=True, exist_ok=True)
         output_filename = f"{jsonl_file.stem}.csv"
-        output_path = args.output_dir / output_filename
+        output_path = output_dir / output_filename
         save_to_csv(all_chunks, output_path)
 
         print(f"Processed {len(docs)} documents into {len(all_chunks)} chunks.")
@@ -126,8 +122,23 @@ def main() -> None:
 
         total_docs += len(docs)
         total_chunks += len(all_chunks)
+        generated_paths.append(output_path)
 
-    print(f"\nTotal: processed {total_docs} documents into {total_chunks} chunks across {len(jsonl_files)} files.")
+    if total_docs:
+        print(f"\nTotal: processed {total_docs} documents into {total_chunks} chunks across {len(jsonl_files)} files.")
+
+    return generated_paths
+
+
+def main() -> None:
+    args = parse_args()
+
+    if not args.input_dir.exists():
+        raise SystemExit(f"Input directory {args.input_dir} not found")
+
+    generated = create_embeddings(args.input_dir, args.output_dir)
+    if not generated:
+        print(f"No embeddings generated for {args.input_dir}")
 
 if __name__ == "__main__":
     main()
