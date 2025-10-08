@@ -15,6 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      - app-network
 
   api:
     build: .
@@ -31,6 +33,27 @@ services:
       db:
         condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - app-network
+
+  frontend:
+    build: .
+    container_name: pt-llm-assistant-frontend
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+    depends_on:
+      api:
+        condition: service_started
+    command: streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port 8080
+    networks:
+      - app-network
+
+networks:
+  app-network:
 
 volumes:
   db_data:

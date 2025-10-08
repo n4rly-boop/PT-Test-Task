@@ -146,7 +146,4 @@ def web_tool(query: str, top_k: int = DEFAULT_TOP_K) -> str:
         if preview:
             result.preview = preview
 
-    formatted = format_results(search_results)
-    print(formatted)
-
-    return formatted
+    return format_results(search_results)
