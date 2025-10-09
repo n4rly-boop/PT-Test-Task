@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
-from typing import Generator, Optional
+from typing import AsyncGenerator, Generator, Optional
 
 from sqlalchemy import MetaData, create_engine, text
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import URL, make_url
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 from app.core.config import settings
@@ -25,7 +27,24 @@ def _schema_for_backend(url: str, schema: str) -> Optional[str]:
         return schema
     return None
 
-# Use a synchronous engine; FastAPI endpoints are sync right now
+def _async_database_url(url: str) -> str:
+    """Translate sync SQLAlchemy URL to its async equivalent when possible."""
+    try:
+        parsed: URL = make_url(url)
+    except Exception:
+        return url
+
+    driver = parsed.drivername
+    if driver.startswith("postgresql"):
+        parsed = parsed.set(drivername="postgresql+asyncpg")
+    elif driver.startswith("sqlite"):
+        parsed = parsed.set(drivername="sqlite+aiosqlite")
+    return parsed.render_as_string(hide_password=False)
+
+
+ASYNC_SQLALCHEMY_DATABASE_URL = _async_database_url(SQLALCHEMY_DATABASE_URL)
+
+# Maintain a synchronous engine for scripts/utilities that rely on it
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
@@ -35,13 +54,34 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
 
+async_engine: AsyncEngine
+if ASYNC_SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    async_engine = create_async_engine(
+        ASYNC_SQLALCHEMY_DATABASE_URL,
+        pool_pre_ping=True,
+    )
+else:
+    async_engine = create_async_engine(ASYNC_SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 metadata = MetaData(schema=_schema_for_backend(SQLALCHEMY_DATABASE_URL, USER_SCHEMA))
 Base = declarative_base(metadata=metadata)
 
 
-def get_db() -> Generator:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        yield session
+
+
+def get_sync_db() -> Generator:
+    """Retain sync dependency for scripts/tests that still need it."""
     db = SessionLocal()
     try:
         yield db
@@ -49,21 +89,21 @@ def get_db() -> Generator:
         db.close()
 
 
-def init_db() -> None:
+async def init_db() -> None:
     # Import models so they are registered with Base before create_all
     from app.db import models, rag_models
 
-    if engine.dialect.name == "postgresql":
-        with engine.begin() as conn:
-            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {USER_SCHEMA}"))
-            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {RAG_SCHEMA}"))
-            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    async with async_engine.begin() as conn:
+        if conn.dialect.name == "postgresql":
+            await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {USER_SCHEMA}"))
+            await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {RAG_SCHEMA}"))
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
-    Base.metadata.create_all(bind=engine)
-    rag_models.RAGBase.metadata.create_all(bind=engine)
+        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(rag_models.RAGBase.metadata.create_all)
 
     try:
-        _bootstrap_rag_data(rag_models)
+        await asyncio.to_thread(_bootstrap_rag_data, rag_models)
     except Exception as exc:
         print("Failed to initialize RAG data: %s", exc)
 

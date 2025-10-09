@@ -79,6 +79,10 @@ class Model:
         """Invoke the model with LangChain BaseMessage list, returning AIMessage."""
         return self.llm.invoke([SystemMessage(content=system_prompt)] + messages)
 
+    async def ainvoke(self, messages: List[BaseMessage]) -> AIMessage:
+        """Asynchronously invoke the model with LangChain BaseMessage list."""
+        return await self.llm.ainvoke([SystemMessage(content=system_prompt)] + messages)
+
 
 class StubLLM:
     def bind_tools(self, tools):
@@ -96,3 +100,6 @@ class StubLLM:
                 pass
         content = "Test response" if last_user is None else "Echo: " + getattr(last_user, "content", "")
         return AIMessage(content=content)
+
+    async def ainvoke(self, messages: List[BaseMessage]) -> AIMessage:
+        return self.invoke(messages)

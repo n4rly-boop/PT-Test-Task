@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import csv
 import os
 import sys
@@ -110,7 +111,7 @@ def main() -> None:
         print(f"No files matching '{args.pattern}' found in {args.input_dir}")
         return
 
-    init_db()
+    asyncio.run(init_db())
     with engine.begin() as conn:
         ensure_pgvector(conn)
     rag_models.RAGBase.metadata.create_all(bind=engine)

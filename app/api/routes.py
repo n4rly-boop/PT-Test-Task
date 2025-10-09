@@ -26,9 +26,9 @@ def health_check():
 
 
 @router.post("/chat", tags=["chat"])
-def chat(request: ChatRequest) -> ChatResponse:
+async def chat(request: ChatRequest) -> ChatResponse:
     messages = [{"role": "user", "content": request.message}]
-    response = agent_service.run(messages)
+    response = await agent_service.run(messages)
     reply = response["messages"][-1].content
     tools = [tool.name for tool in response["messages"] if isinstance(tool, ToolMessage)]
     meta = {"session_id": request.session_id}

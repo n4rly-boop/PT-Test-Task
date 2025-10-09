@@ -4,10 +4,10 @@ from typing import Dict, List
 
 from typing_extensions import Annotated
 
+from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
-from langchain_core.messages import AIMessage, BaseMessage
 
 from app.core.config import settings
 from app.services.model import Model
@@ -22,10 +22,10 @@ class State(dict):
 
 TOOLS = [rag_tool, sql_tool, web_tool]
 
-def chatbot(state: State) -> Dict[str, List[BaseMessage]]:
+async def chatbot(state: State) -> Dict[str, List[BaseMessage]]:
     try:
         llm = Model().with_tools(TOOLS)
-        ai_message = llm.invoke(state["messages"])
+        ai_message = await llm.ainvoke(state["messages"])
     except Exception as e:
         return {"messages": [AIMessage(content=f"LLM error {settings.llm_error_code}: {e}")]}
     return {"messages": [ai_message]}
@@ -51,6 +51,5 @@ class SuperAssistantAgent:
         graph.set_entry_point("chatbot")
         self.graph = graph.compile()
 
-    def run(self, messages: List[BaseMessage]) -> AIMessage:
-        response = self.graph.invoke({"messages": messages})
-        return response
+    async def run(self, messages: List[BaseMessage]) -> Dict[str, List[BaseMessage]]:
+        return await self.graph.ainvoke({"messages": messages})

@@ -12,7 +12,7 @@ from app.api.users import router as users_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database tables on startup
-    init_db()
+    await init_db()
     yield
 
 
