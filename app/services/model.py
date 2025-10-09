@@ -26,10 +26,7 @@ class Model:
         provider = (settings.llm_provider or "openai").lower()
         builder = {
             "openai": self._build_openai_like,
-            "openrouter": self._build_openai_like,
-            "vllm": self._build_openai_like,
-            "ollama": self._build_ollama,
-            "stub": lambda _: StubLLM(),
+            "ollama": self._build_ollama
         }.get(provider)
 
         if builder is None:
