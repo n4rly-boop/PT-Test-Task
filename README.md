@@ -39,3 +39,217 @@ python scripts/embed_documents.py
 ### Полезные команды
 - Запуск тестов: `pytest`.
 - Обновление embeddings вручную: `python scripts/embed_documents.py` (создаёт CSV в `data/embeddings/`), затем `python scripts/upload_embeddings.py`.
+
+## Примеры API-запросов
+
+Все команды предполагают, что сервис запущен локально и доступен по адресу `http://localhost:8000`.
+
+### Базовые маршруты
+
+#### GET /
+```bash
+curl http://localhost:8000/ | jq
+```
+Пример ответа:
+```json
+{
+  "app": "PT Test Task",
+  "message": "PT-LLM-Assistant API running"
+}
+```
+
+#### GET /health
+```bash
+curl http://localhost:8000/health | jq
+```
+Пример ответа:
+```json
+{
+  "status": "ok"
+}
+```
+
+### Быстрый чат без сессий
+
+#### POST /chat
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Привет! Что ты умеешь?"}' | jq
+```
+Пример ответа:
+```json
+{
+  "reply": "Здравствуйте! Готов помочь с вопросами по данным и документам.",
+  "tools": ["rag"],
+  "meta": {
+    "session_id": null
+  }
+}
+```
+
+### Управление чат-сессиями
+
+#### POST /chat/sessions
+```bash
+curl -X POST http://localhost:8000/chat/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 1, "title": "Обсуждение отчета"}' | jq
+```
+Пример ответа:
+```json
+{
+  "id": "4d5f6a94-7c13-4f49-a873-b7d80d7c6f46",
+  "user_id": 1,
+  "title": "Обсуждение отчета",
+  "created_at": "2024-05-01T10:15:04.123456"
+}
+```
+
+#### GET /chat/sessions/{user_id}
+```bash
+curl http://localhost:8000/chat/sessions/1 | jq
+```
+Пример ответа:
+```json
+{
+  "sessions": [
+    {
+      "id": "4d5f6a94-7c13-4f49-a873-b7d80d7c6f46",
+      "title": "Обсуждение отчета",
+      "created_at": "2024-05-01T10:15:04.123456",
+      "updated_at": "2024-05-01T10:17:11.000000",
+      "last_message_at": "2024-05-01T10:17:11.000000",
+      "message_count": 3
+    }
+  ]
+}
+```
+
+#### POST /chat/sessions/{session_id}/messages
+```bash
+curl -X POST http://localhost:8000/chat/sessions/4d5f6a94-7c13-4f49-a873-b7d80d7c6f46/messages \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Какие итоги по проекту?", "use_tools": true}' | jq
+```
+Пример ответа:
+```json
+{
+  "reply": "Проект завершен, ключевые метрики достигнуты. Готов предоставить детали.",
+  "tools": ["rag", "sql"],
+  "meta": {
+    "session_id": "4d5f6a94-7c13-4f49-a873-b7d80d7c6f46"
+  }
+}
+```
+
+#### GET /chat/sessions/{session_id}/messages
+```bash
+curl http://localhost:8000/chat/sessions/4d5f6a94-7c13-4f49-a873-b7d80d7c6f46/messages | jq
+```
+Пример ответа:
+```json
+{
+  "session_id": "4d5f6a94-7c13-4f49-a873-b7d80d7c6f46",
+  "messages": [
+    {
+      "id": 10,
+      "role": "user",
+      "content": "Какие итоги по проекту?",
+      "created_at": "2024-05-01T10:17:05.000000"
+    },
+    {
+      "id": 11,
+      "role": "assistant",
+      "content": "Проект завершен, ключевые метрики достигнуты. Готов предоставить детали.",
+      "created_at": "2024-05-01T10:17:11.000000"
+    }
+  ]
+}
+```
+
+#### DELETE /chat/sessions/{session_id}
+```bash
+curl -X DELETE http://localhost:8000/chat/sessions/4d5f6a94-7c13-4f49-a873-b7d80d7c6f46 | jq
+```
+Пример ответа:
+```json
+{
+  "ok": true
+}
+```
+
+### Управление пользователями
+
+#### POST /users
+```bash
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "slack_u_123"}' | jq
+```
+Пример ответа:
+```json
+{
+  "id": 1,
+  "external_id": "slack_u_123",
+  "created_at": "2024-05-01T09:00:00.000000",
+  "updated_at": "2024-05-01T09:00:00.000000"
+}
+```
+
+#### GET /users
+```bash
+curl "http://localhost:8000/users?skip=0&limit=20" | jq
+```
+Пример ответа:
+```json
+[
+  {
+    "id": 1,
+    "external_id": "slack_u_123",
+    "created_at": "2024-05-01T09:00:00.000000",
+    "updated_at": "2024-05-01T09:05:32.000000"
+  }
+]
+```
+
+#### GET /users/{user_id}
+```bash
+curl http://localhost:8000/users/1 | jq
+```
+Пример ответа:
+```json
+{
+  "id": 1,
+  "external_id": "slack_u_123",
+  "created_at": "2024-05-01T09:00:00.000000",
+  "updated_at": "2024-05-01T09:05:32.000000"
+}
+```
+
+#### PUT /users/{user_id}
+```bash
+curl -X PUT http://localhost:8000/users/1 \
+  -H "Content-Type: application/json" \
+  -d '{"external_id": "slack_u_123_updated"}' | jq
+```
+Пример ответа:
+```json
+{
+  "id": 1,
+  "external_id": "slack_u_123_updated",
+  "created_at": "2024-05-01T09:00:00.000000",
+  "updated_at": "2024-05-01T09:05:32.000000"
+}
+```
+
+#### DELETE /users/{user_id}
+```bash
+curl -X DELETE http://localhost:8000/users/1 | jq
+```
+Пример ответа:
+```json
+{
+  "ok": true
+}
+```
