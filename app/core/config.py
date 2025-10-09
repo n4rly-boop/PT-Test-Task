@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     llm_api_key: str = Field(default="", alias="LLM_API_KEY")
     llm_base_url: str = Field(default="", alias="LLM_BASE_URL")
     llm_model: str = Field(default="google/gemini-2.5-flash-preview-09-2025", alias="LLM_MODEL")
+    llm_provider: str = Field(default="openai", alias="LLM_PROVIDER")
     llm_error_code: str = Field(default="", alias="LLM_ERROR_CODE")
 
     #LangSmith configuration

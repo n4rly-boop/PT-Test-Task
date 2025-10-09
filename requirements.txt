@@ -9,6 +9,7 @@ langgraph>=0.2.22
 langchain-core>=0.2.43
 typing_extensions>=4.12.2
 langchain-openai>=0.2.0
+langchain-community>=0.2.10
 langchain-text-splitters>=0.2.2
 pytest>=8.3.2
 pytest-asyncio>=0.24.0
